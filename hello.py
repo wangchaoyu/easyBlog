@@ -61,6 +61,14 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+    def is_administrator(self):
+        if self.role_id.__eq__('1'):
+            return True
+        else:
+            return False
+        return False
+
+
 class RegistrationForm(Form):
     username = StringField('Username', validators=[
         Required(), Length(1, 64)])
@@ -95,15 +103,13 @@ class EditProfileForm(Form):
 
 class EditProfileAdminForm(Form):
     username = StringField('Username')
-    role = SelectField('Role', coerce=int)
+    role = SelectField('Role', coerce=int, choices=[(1,"admin"),(2,"user")])
     name = StringField('Real name', validators=[Length(0, 64)])
     location = StringField('Location', validators=[Length(0, 64)])
     about_me = TextAreaField('About me')
     submit = SubmitField('Submit')
     def __init__(self, user, *args, **kwargs):
         super(EditProfileAdminForm, self).__init__(*args, **kwargs)
-        self.role.choices = [(role.id, role.name)
-                             for role in Role.query.order_by(Role.name).all()]
         self.user = user
 
     def validate_username(self, field):
