@@ -8,7 +8,6 @@ from flask.ext.script import Manager, Shell
 from flask.ext.bootstrap import Bootstrap
 from flask.ext.moment import Moment
 from flask.ext.wtf import Form
-# from sqlalchemy.testing.pickleable import User
 from wtforms import StringField, SubmitField, ValidationError, TextAreaField, SelectField
 from wtforms.validators import Required, EqualTo
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -161,8 +160,7 @@ def index():
     form = PostForm()
     if current_user.Permission and \
                  form.validate_on_submit():
-        post = Post(body=form.body.data,
-                    author=current_user.__name__())
+        post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
     posts = Post.query.order_by(Post.timestamp.desc()).all()
