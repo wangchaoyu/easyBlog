@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from flask import Flask, render_template, session, redirect, url_for, flash, request, abort
 from flask.ext.login import login_manager,login_user
+from flask.ext.pagedown.fields import PageDownField
 from flask_login import login_user, logout_user, login_required, LoginManager, login_required, current_user
 from flask.ext.script import Manager, Shell
 from flask.ext.bootstrap import Bootstrap
@@ -57,6 +58,7 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -68,6 +70,20 @@ class User(UserMixin, db.Model):
             return False
         return False
 
+    def Permission(self):
+        if self.role_id.__eq__('1') or self.role_id.__eq__('2'):
+            return True
+        else:
+            return False
+        return False
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 class RegistrationForm(Form):
     username = StringField('Username', validators=[
@@ -80,6 +96,10 @@ class RegistrationForm(Form):
     def validate_username(self, field):
         if User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
+
+class PostForm(Form):
+    body = PageDownField("What's on your mind?", validators=[Required()])
+    submit = SubmitField('Submit')
 
 
 class NameForm(Form):
@@ -138,20 +158,15 @@ def internal_server_error(e):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    form = NameForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.name.data).first()
-        if user is None:
-            user = User(username=form.name.data, role_id='2', password=password_hash(form.passworld.data))
-            db.session.add(user)
-            session['known'] = False
-        else:
-            session['known'] = True
-            flag = verifytt_password(user, form.passworld.data)
-        session['name'] = form.name.data
-        return redirect(url_for('index'))
-    return render_template('index.html', form=form, name=session.get('name'),
-                           known=session.get('known', False))
+    form = PostForm()
+    if current_user.Permission and \
+                 form.validate_on_submit():
+        post = Post(body=form.body.data,
+                    author=current_user.__name__())
+        db.session.add(post)
+        return redirect(url_for('.index'))
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', form=form, posts=posts)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
