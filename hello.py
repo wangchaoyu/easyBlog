@@ -273,5 +273,11 @@ def logout():
     return redirect(url_for('index'))
 
 
+@app.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    return render_template('post.html', posts=[post])
+
+
 if __name__ == '__main__':
     manager.run()
