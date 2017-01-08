@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, session, redirect, url_for, flash, request, abort
+from flask import Flask, render_template, session, redirect, url_for, flash, request, abort, current_app
 from flask.ext.login import login_manager,login_user
 from flask.ext.pagedown.fields import PageDownField
 from flask_login import login_user, logout_user, login_required, LoginManager, login_required, current_user
@@ -17,6 +17,9 @@ from flask_wtf import Form as BaseForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import Required, Length, Email
 from flask_login import UserMixin
+from flask.ext.pagedown import PageDown
+from markdown import markdown
+import bleach
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,6 +38,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+pagedown = PageDown()
+pagedown.init_app(app)
 
 
 class Role(db.Model):
@@ -83,6 +88,16 @@ class Post(db.Model):
     body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                             'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                             'h1', 'h2', 'h3', 'p']
+        target.body_html = bleach.linkify(bleach.clean(
+                 markdown(value, output_format='html'),
+                 tags=allowed_tags, strip=True))
+db.event.listen(Post.body, 'set', Post.on_changed_body)
 
 class RegistrationForm(Form):
     username = StringField('Username', validators=[
@@ -163,8 +178,10 @@ def index():
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('index.html', form=form, posts=posts)
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
+    posts = pagination.items
+    return render_template('index.html', form=form, posts=posts, pagination=pagination)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -192,7 +209,10 @@ def user(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
         abort(404)
-    return render_template('user.html', user=user)
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
+    posts = pagination.items
+    return render_template('user.html', user=user, posts=posts, pagination=pagination)
 
 
 @app.route('/register', methods=['GET', 'POST'])
