@@ -437,7 +437,7 @@ def followed_by(username):
     return render_template('followers.html', user=user, title="Followed by",
                            endpoint='.followed_by', pagination=pagination,
                            follows=follows)
-
+# 主体功能已经完成，目前开始解决bug
 
 if __name__ == '__main__':
     manager.run()
