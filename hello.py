@@ -243,8 +243,7 @@ def internal_server_error(e):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = PostForm()
-    if current_user.Permission and \
-                 form.validate_on_submit():
+    if form.validate_on_submit() and current_user.Permission:
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
