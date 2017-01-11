@@ -367,8 +367,6 @@ def post(id):
         flash('Your comment has been published.')
         return redirect(url_for('.post', id=post.id, page=-1))
     page = request.args.get('page', 1, type=int)
-    if page == -1:
-        page = (post.comments.count() - 1)
     pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
         page, per_page=3,
         error_out=False)

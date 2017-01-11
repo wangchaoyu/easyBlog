@@ -1,6 +1,14 @@
+{#<style type="text/css">#}
+{#        li {#}
+{#            border: dashed 2px black;#}
+{#            border-bottom-width: 0px#}
+{#        }#}
+{#</style>#}
 <ul class="posts">
     {% for post in posts %}
-    <li class="post">
+        <br>
+        <br>
+    <li class="post" border-bottom-width="dashed 2px red" >
         <div class="row">
             <div class="col-md-6">
             <a href="{{ url_for('.user', username=post.author.username) }}">
