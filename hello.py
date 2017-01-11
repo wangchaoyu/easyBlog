@@ -123,6 +123,12 @@ class User(UserMixin, db.Model):
         return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
             .filter(Follow.follower_id == self.id)
 
+    def is_admin(self):
+        if self.role_id == 1:
+            return True
+        else:
+            return False
+
     def __repr__(self):
         return '<User %r>' % self.username
 
@@ -248,7 +254,14 @@ def index():
         db.session.add(post)
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
+    if current_user.is_authenticated:
+        user = current_user._get_current_object()
+        if User.is_admin(current_user._get_current_object()):
+            pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
+        else:
+            pagination = Post.query.filter_by(author_id=user.id).order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
+    else:
+        pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
     posts = pagination.items
     return render_template('index.html', form=form, posts=posts, pagination=pagination)
 
