@@ -254,14 +254,7 @@ def index():
         db.session.add(post)
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
-    if current_user.is_authenticated:
-        user = current_user._get_current_object()
-        if User.is_admin(current_user._get_current_object()):
-            pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
-        else:
-            pagination = Post.query.filter_by(author_id=user.id).order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
-    else:
-        pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page, per_page=3 ,error_out=False)
     posts = pagination.items
     return render_template('index.html', form=form, posts=posts, pagination=pagination)
 
